@@ -18,7 +18,7 @@ class UserInfo:
         fat_required(float): g
         
     """
-    def __init__(self, height=0.0, weight=0.0, age=0, sex=None, purpose=None, preference=None, activity_factor=0.0):
+    def __init__(self, height=0.0, weight=0.0, age=0, sex=None, purpose=None, preference=None, activity_factor=None):
         self.height = height
         self.weight = weight
         self.age = age
@@ -26,8 +26,8 @@ class UserInfo:
         self.bmi = 0.0
         self.purpose = DietPurpose(purpose) if isinstance(purpose, int) else purpose
         self.preference = preference or []
-        
-        self.activity_factor = ActivityLevel(activity_factor) if isinstance(activity_factor, float) else activity_factor
+
+        self.activity_factor = ActivityLevel(activity_factor) if isinstance(activity_factor, int) else activity_factor
         
         self.calories_required = 0.0
         self.carbon_required = 0.0

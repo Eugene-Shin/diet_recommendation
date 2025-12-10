@@ -8,8 +8,10 @@ class NutritionRequirementService:
             bmr = 10 * user.weight + 6.25 * user.height - 5 * user.age + 5
         else:
             bmr = 10 * user.weight + 6.25 * user.height - 5 * user.age - 161
-        
-        # 활동대사량 계산  
+
+        # 활동대사량 계산
+        if user.activity_factor is None:
+            raise ValueError("활동 수준(activity_factor)이 설정되지 않았습니다.")
         tdee = bmr * user.activity_factor.factor
         
         if user.purpose == DietPurpose.NORMAL:
