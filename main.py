@@ -44,9 +44,9 @@ def main() -> None:
 
     # 알고리즘 선택
     print("\n============ 알고리즘 선택 ============")
-    print("1. 그리디 알고리즘 (빠른 추천)")
-    print("2. 유전 알고리즘 (최적화된 추천)")
-    print("3. 백트래킹 알고리즘 (모든 조합 탐색)")
+    print("1. 그리디 알고리즘")
+    print("2. 유전 알고리즘")
+    print("3. 백트래킹 알고리즘")
 
     while True:
         try:
@@ -73,7 +73,7 @@ def main() -> None:
             greedy_service = GreedyService(db_path=db_path)
             combinations = greedy_service.get_recommendations(
                 user,
-                num_combinations=100 # 조합 개수
+                num_combinations=1000 # 조합 개수
             )
         elif choice == 2:
             # 유전 알고리즘 사용
@@ -81,16 +81,16 @@ def main() -> None:
             # population_size: 세대당 개체 수, generations: 진화 세대 수
             combinations = genetic_service.get_recommendations(
                 user,
-                num_combinations=100,
-                population_size=100,
-                generations=50
+                num_combinations=1000,
+                population_size=200, # 100 -> 200
+                generations=100      # 50 -> 100
             )
         else: # choice == 3
             # 백트래킹 알고리즘 사용
             backtracking_service = BacktrackingService(db_path=db_path)
             combinations = backtracking_service.get_recommendations(
                 user,
-                num_combinations=100
+                num_combinations=1000
             )
 
         # 결과 출력

@@ -43,8 +43,7 @@ class BacktrackingService:
         """
         사용자 정보에 기반하여 백트래킹 알고리즘으로 음식 조합을 추천합니다.
         """
-        # 목표치 설정 (조건 완화)
-        # 백트래킹은 정확한 해를 찾기 어려울 수 있으므로 범위를 넓게 잡습니다.
+        # 목표치 설정
         targets = {
             'energy': user.calories_required / 3 + 200,
             'protein': user.protein_required / 3 * 0.8,
@@ -81,8 +80,8 @@ class BacktrackingService:
         found_signatures = set()
 
         self.steps = 0
-        MAX_STEPS = 5000000  # 탐색 횟수 대폭 증가
-        MAX_MENU_ITEMS = 6   # 메뉴 개수 제한 완화 (5 -> 8)
+        MAX_STEPS = 50000000  # 탐색 횟수
+        MAX_MENU_ITEMS = 6   # 메뉴 개수 제한
 
         # 탐색 공간 설정 (너무 많으면 느리므로 상위 N개만 사용)
         search_space_size = 2000

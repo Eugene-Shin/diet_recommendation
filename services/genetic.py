@@ -39,12 +39,7 @@ class GeneticService:
                           population_size: int = 100, generations: int = 50) -> List[Tuple[List[Dict], Dict]]:
         """
         사용자 정보에 기반하여 유전 알고리즘으로 음식 조합을 추천합니다.
-
-        Args:
-            user: 사용자 정보
-            num_combinations: 반환할 조합의 개수
-            population_size: 세대당 개체 수
-            generations: 진화 세대 수
+        목표 조합 개수를 채울 때까지 알고리즘을 반복 실행합니다 (Restart Strategy).
         """
         # 목표 영양소를 3으로 나누어 한 끼 분량을 계산합니다.
         targets = {
@@ -54,7 +49,6 @@ class GeneticService:
             'carbs': user.carbon_required / 3 - 50
         }
         
-        # 사용자 정보에서 1순위 선호도를 가져옵니다.
         preference = user.preference[0].label if user.preference else None
         
         if preference:
@@ -65,56 +59,81 @@ class GeneticService:
         print("\n[한 끼 식사 목표 영양소]")
         print(f"에너지 <= {targets['energy']:.2f}kcal, 단백질 >= {targets['protein']:.2f}g, 지방 >= {targets['fat']:.2f}g, 탄수화물 >= {targets['carbs']:.2f}g")
 
-        return self._run_genetic_algorithm(targets, num_combinations, population_size, generations, preference)
+        # --- 반복 실행 로직 시작 ---
+        print(f"\n--- 유전 알고리즘 시작 (목표: {num_combinations}개 조합) ---")
+        total_start_time = time.time()
+        
+        all_unique_combinations = []
+        global_signatures = set()
+        
+        attempt = 0
+        max_attempts = 20  # 무한 루프 방지용 최대 시도 횟수
+        
+        while len(all_unique_combinations) < num_combinations and attempt < max_attempts:
+            attempt += 1
+            needed = num_combinations - len(all_unique_combinations)
 
-    def _run_genetic_algorithm(self, targets: Dict, num_combinations: int,
-                               population_size: int, generations: int,
-                               preference: Optional[str]) -> List[Tuple[List[Dict], Dict]]:
-        """
-        유전 알고리즘을 실행하여 다양한 조합을 찾습니다.
-        """
-        print(f"\n--- 유전 알고리즘 (인구: {population_size}, 세대: {generations}) ---")
-        start_time = time.time()
+            # 한 번의 GA 실행
+            # 인구수와 세대수는 실행 속도를 위해 조절 가능 (여기서는 입력값 유지)
+            batch_results = self._run_single_ga_batch(targets, population_size, generations, preference)
+            
+            # 결과 통합 (중복 제거)
+            new_count = 0
+            for combo, totals, fitness in batch_results:
+                signature = tuple(sorted([f['식품명'] for f in combo]))
+                if signature not in global_signatures:
+                    global_signatures.add(signature)
+                    all_unique_combinations.append((combo, totals))
+                    new_count += 1
+                    
+            # 만약 이번 실행에서 새로운 조합을 하나도 못 찾았다면, 다음 실행에서는 돌연변이율을 높이거나 다양성을 위한 조치가 필요할 수 있음
 
+        total_end_time = time.time()
+        print(f"\n=== 유전 알고리즘 최종 완료 ===")
+        print(f"총 실행 시간: {total_end_time - total_start_time:.4f}초")
+        print(f"최종 발견된 조합 수: {len(all_unique_combinations)}개")
+        
+        # 결과가 너무 많으면 적합도 순으로 정렬하거나 해야 하지만, 
+        # 현재 구조상 적합도 정보는 저장하지 않고 있으므로 발견된 순서대로 반환하거나 
+        # 필요하다면 다시 평가하여 정렬할 수 있습니다. 
+        # 여기서는 발견된 순서대로 반환하되, 요청된 개수만큼 자릅니다.
+        return all_unique_combinations[:num_combinations]
+
+    def _run_single_ga_batch(self, targets: Dict, population_size: int, generations: int,
+                               preference: Optional[str]) -> List[Tuple[List[Dict], Dict, float]]:
+        """
+        유전 알고리즘을 1회 실행하여 유효한 조합들을 반환합니다.
+        """
         # 초기 개체군 생성
         population = self._initialize_population(population_size, targets)
 
-        best_solutions = []
-        found_signatures = set()
+        best_solutions_in_run = []
+        local_signatures = set()
 
         for gen in range(generations):
             # 적합도 계산
             fitness_scores = [(individual, self._calculate_fitness(individual, targets, preference))
                             for individual in population]
+            
+            # 적합도 순 정렬
             fitness_scores.sort(key=lambda x: x[1], reverse=True)
 
-            # 진행 상황 출력 (10세대마다)
-            if (gen + 1) % 10 == 0:
-                best_fitness = fitness_scores[0][1]
-                # print(f"세대 {gen + 1}/{generations}: 최고 적합도 = {best_fitness:.4f}")
-
-            # 우수한 개체 저장
-            for individual, fitness in fitness_scores[:num_combinations * 2]:
-                if fitness > 0:
+            # 마지막 세대이거나, 중간중간 우수한 개체 수집
+            # 여기서는 매 세대 상위 20%를 후보로 등록 (중복 제거하며)
+            top_count = max(1, int(population_size * 0.2))
+            for individual, fitness in fitness_scores[:top_count]:
+                if fitness > 0: # 유효한 해만
                     signature = tuple(sorted([idx for idx in individual if idx != -1]))
-                    if signature not in found_signatures and len(signature) > 0:
-                        found_signatures.add(signature)
+                    if signature not in local_signatures and len(signature) > 0:
+                        local_signatures.add(signature)
                         combination = [self.food_list[idx] for idx in individual if idx != -1]
                         totals = self._calculate_nutrition(combination)
-                        best_solutions.append((combination, totals, fitness))
+                        best_solutions_in_run.append((combination, totals, fitness))
 
             # 다음 세대 생성
             population = self._evolve_population(fitness_scores, population_size, targets)
 
-        # 적합도 기준으로 정렬하고 상위 조합 반환
-        best_solutions.sort(key=lambda x: x[2], reverse=True)
-        result = [(comb, totals) for comb, totals, _ in best_solutions[:num_combinations]]
-
-        end_time = time.time()
-        print(f"유전 알고리즘 총 실행 시간: {end_time - start_time:.4f}초")
-        print(f"발견된 유효한 조합: {len(result)}개")
-
-        return result
+        return best_solutions_in_run
 
     def _initialize_population(self, population_size: int, targets: Dict) -> List[List[int]]:
         """
