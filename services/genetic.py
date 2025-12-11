@@ -48,7 +48,7 @@ class GeneticService:
         """
         # 목표 영양소를 3으로 나누어 한 끼 분량을 계산합니다.
         targets = {
-            'energy': user.calories_required / 3 + 300,
+            'energy': user.calories_required / 3 + 200,
             'protein': user.protein_required / 3,
             'fat': user.fat_required / 3,
             'carbs': user.carbon_required / 3 - 50
@@ -91,7 +91,7 @@ class GeneticService:
             # 진행 상황 출력 (10세대마다)
             if (gen + 1) % 10 == 0:
                 best_fitness = fitness_scores[0][1]
-                print(f"세대 {gen + 1}/{generations}: 최고 적합도 = {best_fitness:.4f}")
+                # print(f"세대 {gen + 1}/{generations}: 최고 적합도 = {best_fitness:.4f}")
 
             # 우수한 개체 저장
             for individual, fitness in fitness_scores[:num_combinations * 2]:

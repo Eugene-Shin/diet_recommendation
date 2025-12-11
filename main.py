@@ -5,9 +5,10 @@ from controllers.display_daily_requirements import display_daily_requirements
 from services.nutrition_requirement_service import NutritionRequirementService
 from services.genetic import GeneticService
 from services.greedy import GreedyService
+from services.backtracking import BacktrackingService
+
 
 def display_recommendations(combinations):
-    """추천된 음식 조합을 보기 쉽게 출력하는 함수"""
     if not combinations:
         print("\n추천된 식단이 없습니다.")
         return
@@ -45,14 +46,15 @@ def main() -> None:
     print("\n============ 알고리즘 선택 ============")
     print("1. 그리디 알고리즘 (빠른 추천)")
     print("2. 유전 알고리즘 (최적화된 추천)")
+    print("3. 백트래킹 알고리즘 (모든 조합 탐색)")
 
     while True:
         try:
-            choice = int(input("사용할 알고리즘을 선택하세요 (1 또는 2): "))
-            if choice in [1, 2]:
+            choice = int(input("사용할 알고리즘을 선택하세요 (1, 2 또는 3): "))
+            if choice in [1, 2, 3]:
                 break
             else:
-                print("1 또는 2를 입력해주세요.")
+                print("1, 2 또는 3을 입력해주세요.")
         except ValueError:
             print("숫자를 입력해주세요.")
 
@@ -71,17 +73,24 @@ def main() -> None:
             greedy_service = GreedyService(db_path=db_path)
             combinations = greedy_service.get_recommendations(
                 user,
-                num_combinations=5
+                num_combinations=100 # 조합 개수
             )
-        else:
+        elif choice == 2:
             # 유전 알고리즘 사용
             genetic_service = GeneticService(db_path=db_path)
             # population_size: 세대당 개체 수, generations: 진화 세대 수
             combinations = genetic_service.get_recommendations(
                 user,
-                num_combinations=5,
+                num_combinations=100,
                 population_size=100,
                 generations=50
+            )
+        else: # choice == 3
+            # 백트래킹 알고리즘 사용
+            backtracking_service = BacktrackingService(db_path=db_path)
+            combinations = backtracking_service.get_recommendations(
+                user,
+                num_combinations=100
             )
 
         # 결과 출력
